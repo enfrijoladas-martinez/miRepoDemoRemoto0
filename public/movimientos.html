@@ -1,49 +1,121 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Movimientos de Inventario - AGROMUNDO</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Movimientos de Inventario - AGROMUNDO</h1>
+const API = "http://localhost:3000/api/movimientos";
+let todosLosMovimientos = [];
 
-        <form id="formMovimientos">
-            <label>Producto</label>
-            <select id="id_producto" required>
-                <option value="101">Fertilizante NPK</option>
-                <option value="102">Semilla Maíz</option>
-                <option value="103">Pesticida Orgánico</option>
-            </select>
+// ====================== ESTADÍSTICAS ======================
+async function cargarEstadisticas() {
+    const res = await fetch(API);
+    todosLosMovimientos = await res.json();
 
-            <label>Almacén</label>
-            <select id="id_almacen" required>
-                <option value="1">Bodega Principal</option>
-                <option value="2">Almacén Campo</option>
-            </select>
+    const entradas = todosLosMovimientos.filter(m => m.tipo).length;
+    const salidas = todosLosMovimientos.filter(m => !m.tipo).length;
+    const totalHoy = todosLosMovimientos.filter(m => m.fecha === new Date().toISOString().split('T')[0]).length;
 
-            <label>Tipo</label>
-            <select id="tipo" required>
-                <option value="true">✅ Entrada</option>
-                <option value="false">❌ Salida</option>
-            </select>
+    document.getElementById('stats').innerHTML = `
+        <div class="col-md-3">
+            <div class="card stat-card text-white bg-success">
+                <div class="card-body">
+                    <h5>Entradas Totales</h5>
+                    <h2>${entradas}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card text-white bg-danger">
+                <div class="card-body">
+                    <h5>Salidas Totales</h5>
+                    <h2>${salidas}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card text-white bg-primary">
+                <div class="card-body">
+                    <h5>Movimientos Hoy</h5>
+                    <h2>${totalHoy}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card text-white bg-warning">
+                <div class="card-body">
+                    <h5>Total Movimientos</h5>
+                    <h2>${todosLosMovimientos.length}</h2>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
-            <label>Cantidad</label>
-            <input type="number" id="cantidad" min="1" required>
+// ====================== FILTROS Y TABLA ======================
+function aplicarFiltros() {
+    const producto = document.getElementById('filtroProducto').value;
+    const tipo = document.getElementById('filtroTipo').value;
+    const desde = document.getElementById('filtroDesde').value;
+    const hasta = document.getElementById('filtroHasta').value;
+    const busqueda = document.getElementById('busqueda').value.toLowerCase();
 
-            <button type="submit">Registrar Movimiento</button>
-        </form>
+    let filtrados = todosLosMovimientos.filter(m => {
+        const coincideProducto = !producto || m.id_producto == producto;
+        const coincideTipo = !tipo || m.tipo.toString() === tipo;
+        const coincideFecha = (!desde || m.fecha >= desde) && (!hasta || m.fecha <= hasta);
+        const coincideBusqueda = m.nombre_producto.toLowerCase().includes(busqueda);
+        return coincideProducto && coincideTipo && coincideFecha && coincideBusqueda;
+    });
 
-        <h2>Historial de Movimientos</h2>
-        <table>
-            <thead>
-                <tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Almacén</th><th>Cantidad</th></tr>
-            </thead>
-            <tbody id="tablaMovimientos"></tbody>
-        </table>
-    </div>
+    renderizarTabla(filtrados);
+}
 
-    <script src="movimientos.js"></script>
-</body>
-</html>
+function renderizarTabla(data) {
+    const tbody = document.querySelector('#tablaMovimientos tbody');
+    tbody.innerHTML = '';
+
+    data.forEach(m => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+            <td>${m.fecha}</td>
+            <td><span class="badge ${m.tipo ? 'badge-entrada' : 'badge-salida'}">${m.tipo ? 'Entrada' : 'Salida'}</span></td>
+            <td>${m.nombre_producto}</td>
+            <td>${m.nombre_almacen}</td>
+            <td><strong>${m.cantidad}</strong></td>
+        `;
+        tbody.appendChild(fila);
+    });
+}
+
+// ====================== EXPORTAR ======================
+function exportarCSV() {
+    let csv = "Fecha,Tipo,Producto,Almacén,Cantidad\n";
+    todosLosMovimientos.forEach(m => {
+        csv += `${m.fecha},${m.tipo ? 'Entrada' : 'Salida'},${m.nombre_producto},${m.nombre_almacen},${m.cantidad}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Movimientos_Agromundo_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+}
+
+function exportarPDF() {
+    window.print(); // Abre la impresión (puedes guardar como PDF)
+}
+
+// ====================== INICIALIZACIÓN ======================
+async function init() {
+    await cargarEstadisticas();
+    cargarEstadisticas(); // segunda vez para llenar filtros
+    renderizarTabla(todosLosMovimientos);
+
+    // Llenar filtro de productos
+    const productosUnicos = [...new Set(todosLosMovimientos.map(m => m.id_producto))];
+    const select = document.getElementById('filtroProducto');
+    productosUnicos.forEach(id => {
+        const nombre = todosLosMovimientos.find(m => m.id_producto === id).nombre_producto;
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = nombre;
+        select.appendChild(opt);
+    });
+}
+
+init();

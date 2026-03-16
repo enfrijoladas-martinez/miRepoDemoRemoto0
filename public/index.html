@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Streaming Form</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+
+        <h1>Registro Streaming</h1>
+
+        <form id="formulario">
+
+            <input type="hidden" id="id">
+
+            <label>Nombre</label>
+            <input type="text" id="nombre" required>
+
+            <label>Email</label>
+            <input type="email" id="email" required>
+
+            <label>Genero</label>
+            <select id="genero">
+                <option>Masculino</option>
+                <option>Femenino</option>
+                <option>Otro</option>
+            </select>
+
+            <label>Plataformas</label>
+
+            <div class="checkbox-group">
+
+                <label>
+                    <input type="checkbox" value="Netflix" class="plataforma"> Netflix
+                </label>
+
+                <label>
+                    <input type="checkbox" value="Prime" class="plataforma"> Prime
+                </label>
+
+                <label>
+                    <input type="checkbox" value="Disney+" class="plataforma"> Disney+
+                </label>
+
+                <label>
+                    <input type="checkbox" value="HBO" class="plataforma"> HBO
+                </label>
+
+            </div>
+
+            <br>
+
+            <button type="submit">Guardar</button>
+
+        </form>
+
+        <h2>Usuarios</h2>
+
+        <table>
+
+            <thead>
+            <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Genero</th>
+            <th>Plataformas</th>
+            </tr>
+            </thead>
+
+            <tbody id="tablaUsuarios"></tbody>
+
+        </table>
+
+    </div>
+    <script src="front-index.js"></script>
+</body>
+</html>
